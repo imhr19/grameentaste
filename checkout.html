@@ -113,9 +113,14 @@
         total: total,
         timestamp: new Date().toISOString()
       };
-      push(ref(db, "orders"), order).then(() => {
-        localStorage.removeItem("cart");
-        window.location.href = "thanks.html";
+      push(ref(db, "orders"), order).then((refResult) => {
+  const orderId = refResult.key;
+  localStorage.setItem("lastOrderId", orderId);
+  localStorage.setItem("lastOrderData", JSON.stringify(order));
+  localStorage.removeItem("cart");
+  window.location.href = "/thanks.html";
+});
+
       }).catch(err => alert("Error placing order"));
     });
   </script>
