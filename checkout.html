@@ -115,7 +115,7 @@
       };
       push(ref(db, "orders"), order).then(() => {
         localStorage.removeItem("cart");
-        window.location.href = "/thanks.html";
+        window.location.href = "thanks.html";
       }).catch(err => alert("Error placing order"));
     });
   </script>
