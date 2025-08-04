@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grameen Taste - Swaad jo yaadon ko jagayein!</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #6B8E23;
+      --secondary: #DAA520;
+      --accent: #CD853F;
+      --light: #F5F5DC;
+      --dark: #333;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--light);
+      color: var(--dark);
+    }
+    
+    .hero-section {
+      background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), 
+                  url('https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/65be339f-cbbe-4c4e-8708-a84f4b6a4bc2.png') no-repeat center center;
+      background-size: cover;
+      height: 80vh;
+    }
+    
+    .product-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+    
+    .cart-item-enter {
+      opacity: 0;
+      transform: translateX(-100px);
+    }
+    
+    .cart-item-enter-active {
+      opacity: 1;
+      transform: translateX(0);
+      transition: all 300ms ease-in;
+    }
+    
+    .chatbot-container {
+      transition: all 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+      .hero-section {
+        height: 60vh;
+      }
+    }
+  </style>
+  <!-- Firebase App (Modular SDK) -->
+<script type="module">
+  
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getAuth, signInWithPhoneNumber, RecaptchaVerifier, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBCj71-HO8i_xpgQ-Wbn5j85V9yHeJKdOg",
+    authDomain: "grameentaste-929dc.firebaseapp.com",
+    projectId: "grameentaste-929dc",
+    storageBucket: "grameentaste-929dc.firebasestorage.app",
+    messagingSenderId: "472094939233",
+    appId: "1:472094939233:web:a5e8f2877e8b9318c83220",
+    measurementId: "G-WLHK4FD1D5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth();
+  const loginDrawer = document.getElementById("login-drawer");
+  const profileDrawer = document.getElementById("profileDrawer");
+  const userEmailOrPhone = document.getElementById("userEmailOrPhone");
+  const orderHistoryBtn = document.getElementById("orderHistoryBtn");
+const trackOrderBtn = document.getElementById("trackOrderBtn");
+
+function openProfileDrawer() {
+  profileDrawer.classList.remove("translate-x-full");
+  profileDrawer.classList.add("translate-x-0");
+}
+
+function closeProfileDrawer() {
+  const profileDrawer = document.getElementById("profileDrawer");
+  if (profileDrawer) {
+    profileDrawer.classList.add("translate-x-full");
+    profileDrawer.classList.remove("translate-x-0");
+  }
+}
+
+window.logoutUser = function () {
+  signOut(auth)
+    .then(() => {
+      // ✅ Close the drawer
+      const profileDrawer = document.getElementById("profileDrawer");
+      if (profileDrawer) {
+        profileDrawer.classList.add("translate-x-full");
+        profileDrawer.classList.remove("translate-x-0");
+      }
+
+      // ✅ Redirect after short delay
+      setTimeout(() => {
+        window.location.href = "https://grameentastes.netlify.app/";
+      })
+    })
+    .catch((error) => {
+      console.error("Logout Error:", error);
+      alert("Logout failed. Try again.");
+    });
+};
+
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // ✅ Close login drawer
+    if (loginDrawer) {
+  loginDrawer.classList.add("translate-x-full");
+  loginDrawer.classList.remove("translate-x-0");
+
+  // 🔴 Hide login form inside drawer
+  const loginDrawerContent = loginDrawer.querySelector(".p-6");
+  if (loginDrawerContent) loginDrawerContent.style.display = "none";
+}
+
+    // ✅ Open profile drawer
+    openProfileDrawer();
+
+    // ✅ Welcome message (email or phone)
+    const displayValue = user.email ? user.email : user.phoneNumber;
+    if (userEmailOrPhone) userEmailOrPhone.textContent = `Welcome! ${displayValue}`;
+
+    // ✅ Show buttons
+    if (orderHistoryBtn) orderHistoryBtn.classList.remove("hidden");
+    if (trackOrderBtn) trackOrderBtn.classList.remove("hidden");
+  } else {
+    closeProfileDrawer();
+  }
+});
+
+
+  // ---------------------------
+  // OTP LOGIN
+  // ---------------------------
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    'size': 'invisible',
+    'callback': (response) => {
+      console.log("Recaptcha verified");
+    }
+  });
+
+  let confirmationResultGlobal;
+//sendOTP() function
+  window.sendOTP = async function () {
+  const mobile = document.getElementById("mobile").value;
+  const fullNumber = "+91" + mobile;
+
+  try {
+    const confirmationResult = await signInWithPhoneNumber(auth, fullNumber, window.recaptchaVerifier);
+    confirmationResultGlobal = confirmationResult;
+    alert("OTP sent!");
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+
+  window.verifyOTP = async function () {
+    const code = document.getElementById("otp").value;
+    try {
+      const result = await confirmationResultGlobal.confirm(code);
+      alert("Login Successful: " + result.user.phoneNumber);
+    } catch (error) {
+      alert("Invalid OTP");
+    }
+  }
+
+  // ---------------------------
+  // EMAIL SIGNUP
+  // ---------------------------
+  window.signupEmail = async function () {
+    const email = document.getElementById("new-email").value;
+    const password = document.getElementById("new-password").value;
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      alert("Signup successful!");
+    } catch (error) {
+      alert(error.message);
+    }
+  }
+
+  // ---------------------------
+  // EMAIL LOGIN
+  // ---------------------------
+  window.loginEmail = async function () {
+    const email = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      alert("Welcome! " + email);
+    } catch (error) {
+      alert("Login failed: " + error.message);
+    }
+  }
+
+  // ---------------------------
+  // Redirect after login
+  // ---------------------------
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      console.log("User logged in:", user);
+      //window.location.href = "/dashboard.html"; // redirect if needed
+    }
+  });
+
+</script>
+</head>
+<body class="relative">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-lg sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <img class="h-8 w-8" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/ca16fe26-4451-4733-934f-54964f6860ed.png" alt="Grameen Taste logo: a rustic spoon and fork with wheat decoration">
+            <span class="ml-2 text-xl font-bold text-black">Grameen Taste</span>
+          </div>
+          <div class="hidden md:ml-8 md:flex md:space-x-8">
+            <a href="#home" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Home</a>
+            <a href="#about" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">About</a>
+            <a href="#products" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Products</a>
+            <a href="#pricing" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Pricing</a>
+          </div>
+        </div>
+        <div class="hidden md:ml-6 md:flex md:items-center">
+          
+<!-- After login info -->
+      <div id="user-info" class="hidden text-sm mr-4 text-green-700 font-semibold"></div>
+        <button id="logout-btn" class="hidden bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold">
+          Logout
+        </button>
+          <div class="relative">
+            <button id="cart-btn" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-shopping-cart text-xl"></i>
+              <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-6 flex items-center justify-center">0</span>
+            </button>
+          </div>
+          <div class="ml-4 relative">
+            <button id="user-btn" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-user-circle text-xl"></i>
+            </button>
+          <div id="user-info" class="hidden text-sm text-green-700 font-semibold ml-2"></div>
+            <button id="logout-btn" class="hidden bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-semibold ml-2">
+              Logout
+            </button>
+
+          </div>
+          <div class="ml-4 relative">
+            <button id="track-btn" class="text-gray-500 hover:text-gray-700">
+              <i class="fas fa-truck text-xl"></i>
+            </button>
+          </div>
+        </div>
+        <div class="-mr-2 flex items-center md:hidden">
+          <button id="mobile-menu-btn" type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-green-500">
+            <span class="sr-only">Open main menu</span>
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Mobile menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white px-4 pb-4 shadow-md transition-all duration-300">
+      <div class="pt-2 pb-4 space-y-1">
+        <a href="#login" class="bg-green-50 border-green-500 text-green-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Login</a>
+        <a href="#home" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Home</a>
+        <a href="#about" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">About</a>
+        <a href="#products" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Products</a>
+        <a href="#pricing" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Pricing</a>
+        <a href="#cart" id="mobile-cart" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Cart🛒</a>
+        <a href="#track" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Track Order🚚</a>
+        <a href="#reviews" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Reviews</a>
+        <a href="#feedback" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="home" class="hero-section flex items-center justify-center text-center text-white">
+    <div class="max-w-7xl px-4 sm:px-6 lg:px-8">
+      <h1 class="text-4xl md:text-6xl font-bold mb-4">Grameen Taste</h1>
+      <p class="text-xl md:text-2xl mb-8 font-light">Swaad jo yaadon ko jagayein!</p>
+      <div class="flex justify-center space-x-4">
+        <a href="#products" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-md text-lg transition duration-300">Shop Now</a>
+        <a href="#about" class="bg-transparent hover:bg-white hover:text-black text-white font-bold py-3 px-6 border-2 border-white rounded-md text-lg transition duration-300">Learn More</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About Section -->
+  <section id="about" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Our Story</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Traditional flavors that connect you to your roots</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/3b43a8a6-ca48-46eb-877c-539a9932a55d.png" alt="Traditional Indian kitchen with brass utensils and spices being prepared by cooks as sunlight streams through window" class="rounded-lg shadow-xl">
+        </div>
+        <div>
+          <h3 class="text-2xl font-semibold text-gray-900 mb-4">From Our Village to Your Home</h3>
+          <p class="text-gray-600 mb-4">Founded in 2010, Grameen Taste was born from a simple idea - to bring authentic, rural Indian flavors to urban households while supporting small farmers and artisans.</p>
+          <p class="text-gray-600 mb-4">Our products are carefully selected from small farmers and home cooks across India, ensuring you get the purest tastes without any artificial additives or preservatives.</p>
+          <div class="mt-6">
+            <a href="#mission" class="inline-flex items-center text-green-600 hover:text-green-800">
+              Read about our mission
+              <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8 mt-16">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-seedling text-4xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">100% Natural</h3>
+          <p class="text-gray-600">No artificial colors, flavors or preservatives - just like grandma made it.</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-hand-holding-heart text-4xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Direct from Producers</h3>
+          <p class="text-gray-600">Supporting small farmers and home-based entrepreneurs across India.</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-truck text-4xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-2">Fast Delivery</h3>
+          <p class="text-gray-600">Pan-India delivery within 2-5 business days.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mission Section -->
+  <section id="mission" class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Our Mission</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Preserving traditions, empowering communities</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-12 items-center">
+        <div>
+          <h3 class="text-2xl font-semibold text-gray-900 mb-4">More Than Just Food</h3>
+          <p class="text-gray-600 mb-4">At Grameen Taste, we believe food is more than nutrition - it's culture, memory and identity. Our mission is to preserve these culinary traditions while creating sustainable livelihoods for rural communities.</p>
+          <p class="text-gray-600 mb-4">Every product you buy helps support a small farmer, a home cook, or a rural entrepreneur. We maintain fair trade practices and ensure our producers receive premium prices for their premium products.</p>
+          <p class="text-gray-600">Our goal is to bring back the authentic tastes of India that are being lost in today's fast-paced world, one recipe at a time.</p>
+        </div>
+        <div class="relative">
+          <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/e34bcac4-65ac-4539-a8c4-43d31f4920d3.png" alt="Group of rural women farmers happily harvesting vegetables in a sunlit field" class="rounded-lg shadow-xl">
+          <div class="absolute -bottom-4 -right-4 bg-white p-4 rounded-lg shadow-lg">
+            <h4 class="font-bold text-gray-900">Since 2010</h4>
+            <p class="text-gray-600 text-sm">Serving authentic tastes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section id="products" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Our Products</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Handpicked and carefully curated for authentic taste</p>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+    <!--Product 1-->    
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="1" data-name="Traditional Pickles Collection" data-price="450">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/645d4130-76bb-40ef-9b3d-6c162cbe1157.png" alt="Traditional Pickles Collection" class="w-full h-64 object-cover">
+        <div class="absolute top-2 right-2 bg-green-100 text-green-800 text-xs font-bold px-2 py-1 rounded-full">New</div>
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Traditional Pickles Collection</h3>
+        <p class="text-gray-700 text-base mb-4">Set of 3 artisanal pickles - mango, lemon and mixed vegetable</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹450</span>
+          <div class="product-controls" data-id="1">
+  <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+
+  <div class="qty-control hidden items-center gap-2">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-1">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+  </div>
+  </div>
+        </div>
+      </div>
+    </div>
+    <!--Product 2-->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="2" data-name="Handmade Papad Assortment" data-price="350">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/e19db699-3471-4fd8-aa6b-5edcc43a9382.png" alt="Handmade Papad Assortment" class="w-full h-64 object-cover">
+        </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Handmade Papad Assortment</h3>
+        <p class="text-gray-700 text-base mb-4">Pack of 50 mixed urad, moong and rice papads</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹350</span>
+          <div class="product-controls" data-id="2">
+  <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+
+  <div class="qty-control hidden items-center gap-2">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-2">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </div>
+    <!--Product 3-->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="3" data-name="Organic Forest Honey" data-price="650">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/b60aa9d1-55da-4e14-b1c8-8f346774fb29.png" alt="Organic Forest Honey" class="w-full h-64 object-cover">
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Organic Forest Honey</h3>
+        <p class="text-gray-700 text-base mb-4">500g pure, raw honey from Himalayan forests</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹650</span>
+          <div class="product-controls" data-id="3">
+  <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+
+  <div class="qty-control hidden items-center gap-2">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-3">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </div>
+    <!--Product 4-->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="4" data-name="Artisan Spice Blends" data-price="550">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/cd50ce92-13ae-46ed-91b5-2c4c879d0f83.png" alt="Artisan Spice Blends" class="w-full h-64 object-cover">
+        <div class="absolute top-2 right-2 bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-full">Bestseller</div>
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Artisan Spice Blends</h3>
+        <p class="text-gray-700 text-base mb-4">Set of 5 regional spice mixes - garam masala, sambar, biryani and more</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹550</span>
+          <div class="product-controls" data-id="4">
+  <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+
+  <div class="qty-control hidden items-center gap-2">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-4">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+  </div>
+</div>
+
+        </div>
+      </div>
+    </div>
+    <!--Product 5-->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="5" data-name="Festival Sweet Box" data-price="750">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/7238fc74-2fee-4e9d-aa46-09cffeb4fda4.png" alt="Festival Sweet Box" class="w-full h-64 object-cover">
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Festival Sweet Box</h3>
+        <p class="text-gray-700 text-base mb-4">Assortment of 8 traditional Indian sweets for special occasions</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹750</span>
+          <div class="product-controls" data-id="5">
+  <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+
+  <div class="qty-control hidden items-center gap-2">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-5">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+    </div>
+    </div>
+        </div>
+      </div>
+    </div>
+    <!--Product 6-->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden product-card transition duration-300" data-id="6" data-name="Ayurvedic Beverage Mixes" data-price="400">
+      <div class="relative">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1ea54bee-4c03-4dac-951a-10d358857532.png" alt="Ayurvedic Beverage Mixes" class="w-full h-64 object-cover">
+        <div class="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">Limited Stock</div>
+      </div>
+      <div class="p-4">
+        <h3 class="font-bold text-xl mb-2">Ayurvedic Beverage Mixes</h3>
+        <p class="text-gray-700 text-base mb-4">Healthy drink powders - turmeric latte, herbal chai and more</p>
+        <div class="flex justify-between items-center">
+          <span class="font-bold text-lg">₹400</span>
+          <div class="product-controls" data-id="6">
+              <button class="add-to-cart bg-green-600 text-white px-4 py-2 rounded-md font-semibold">Add to Cart</button>
+                <div class="qty-control hidden items-center gap-">
+    <button class="decrease-qty bg-green-500 text-white px-3 py-1 rounded-full">−</button>
+    <span class="product-qty" id="qty-6">0</span>
+    <button class="increase-qty bg-green-500 text-white px-3 py-1 rounded-full">+</button>
+  </div>
+</div>
+        </div>
+      </div>
+    </div>
+      </div>
+    </div>
+  </section>
+  <!-- View Cart Section -->
+<section class="p-4">
+  <h2 class="text-2xl font-bold mb-2">🛒 Cart</h2>
+  <div id="cart-items" class="bg-white p-4 shadow rounded">
+    <p>Your cart is empty.</p>
+  </div>
+</section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Our Pricing Plans</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Choose the plan that fits your needs</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="px-6 py-8 border-b border-gray-200 text-center">
+            <h3 class="text-lg font-medium text-gray-900">Basic Plan</h3>
+            <div class="mt-4 flex items-center justify-center">
+              <span class="px-3 text-4xl font-bold text-gray-900">₹999</span>
+              <span class="text-lg font-medium text-gray-500">/month</span>
+            </div>
+          </div>
+          <div class="px-6 pt-6 pb-8">
+            <ul class="space-y-4">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>3 premium products monthly</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>Free shipping on all orders</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>5% discount on all purchases</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-times text-gray-300 mt-1 mr-2"></i>
+                <span class="text-gray-400">Early access to new products</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-times text-gray-300 mt-1 mr-2"></i>
+                <span class="text-gray-400">Exclusive recipes</span>
+              </li>
+            </ul>
+            <div class="mt-8">
+              <button class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-md transition duration-300">Get Started</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-green-500 relative">
+          <div class="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">Popular</div>
+          <div class="px-6 py-8 border-b border-gray-200 text-center">
+            <h3 class="text-lg font-medium text-gray-900">Standard Plan</h3>
+            <div class="mt-4 flex items-center justify-center">
+              <span class="px-3 text-4xl font-bold text-gray-900">₹1499</span>
+              <span class="text-lg font-medium text-gray-500">/month</span>
+            </div>
+          </div>
+          <div class="px-6 pt-6 pb-8">
+            <ul class="space-y-4">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>6 premium products monthly</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>Free express shipping</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>10% discount on all purchases</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>Early access to new products</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-times text-gray-300 mt-1 mr-2"></i>
+                <span class="text-gray-400">Exclusive recipes</span>
+              </li>
+            </ul>
+            <div class="mt-8">
+              <button class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Get Started</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div class="px-6 py-8 border-b border-gray-200 text-center">
+            <h3 class="text-lg font-medium text-gray-900">Premium Plan</h3>
+            <div class="mt-4 flex items-center justify-center">
+              <span class="px-3 text-4xl font-bold text-gray-900">₹2499</span>
+              <span class="text-lg font-medium text-gray-500">/month</span>
+            </div>
+          </div>
+          <div class="px-6 pt-6 pb-8">
+            <ul class="space-y-4">
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>12 premium products monthly</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>Free same-day shipping</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>15% discount on all purchases</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>VIP early access to new products</span>
+              </li>
+              <li class="flex items-start">
+                <i class="fas fa-check text-green-500 mt-1 mr-2"></i>
+                <span>Exclusive seasonal recipes</span>
+              </li>
+            </ul>
+            <div class="mt-8">
+              <button class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-4 rounded-md transition duration-300">Get Started</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reviews Section -->
+  <section id="reviews" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Customer Reviews</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">What our customers say about us</p>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex items-center mb-4">
+            <img class="w-12 h-12 rounded-full mr-4" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/77f496a4-afec-41ca-90c0-d0f0950ea45c.png" alt="Smiling middle-aged man with glasses wearing a blue shirt">
+            <div>
+              <h4 class="font-bold">NSN Yadav</h4>
+              <div class="flex text-yellow-400">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+              </div>
+            </div>
+          </div>
+          <p class="text-gray-700">"The pickles remind me of my childhood in Uttar Pradesh. The taste is exactly how my grandmother used to make them. Grameen Taste has truly captured authentic flavors."</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex items-center mb-4">
+            <img class="w-12 h-12 rounded-full mr-4" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/f58fa7be-1197-42ca-8b53-5347e1d7da8f.png" alt="Young woman with long hair smiling warmly in a kitchen setting">
+            <div>
+              <h4 class="font-bold">Mona</h4>
+              <div class="flex text-yellow-400">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+              </div>
+            </div>
+          </div>
+          <p class="text-gray-700">"I've been trying to recreate my mom's recipes in Aligarh, and these spice blends have been a game changer. The quality is outstanding and delivery is always prompt."</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex items-center mb-4">
+            <img class="w-12 h-12 rounded-full mr-4" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/a3c61c64-4e88-4b19-abce-c1075c13764d.png" alt="Elderly woman wearing traditional Indian attire holding a glass jar">
+            <div>
+              <h4 class="font-bold">Priya Sharma</h4>
+              <div class="flex text-yellow-400">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star-half-alt"></i>
+              </div>
+            </div>
+          </div>
+          <p class="text-gray-700">"After moving to the US, I missed real Indian flavors. These products are the closest I've found to homemade. The honey is particularly exceptional."</p>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="flex items-center mb-4">
+            <img class="w-12 h-12 rounded-full mr-4" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/14e366b8-d2e5-4f14-a5cd-a2f6ce6a756b.png" alt="Young man smiling while holding a package in his hands">
+            <div>
+              <h4 class="font-bold">Shubham Kumar</h4>
+              <div class="flex text-yellow-400">
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="fas fa-star"></i>
+                <i class="far fa-star"></i>
+              </div>
+            </div>
+          </div>
+          <p class="text-gray-700">"Great concept and good execution. The papads are perfect, though some products have smaller quantities than expected. Overall happy with my purchases."</p>
+        </div>
+      </div>
+      <div class="mt-12 text-center">
+        <button class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+          Leave a Review
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Track Order Section -->
+  <section id="track" class="py-16 bg-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Track Your Order</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Enter your order details to check status</p>
+      </div>
+      <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md">
+        <div class="mb-6">
+          <label for="order-id" class="block text-sm font-medium text-gray-700 mb-1">Order ID</label>
+          <input type="text" id="order-id" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="E.g. GT2023001">
+        </div>
+        <div class="mb-6">
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" placeholder="your@email.com">
+        </div>
+        <button id="track-order-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">
+          Track Order
+        </button>
+        <div id="tracking-result" class="mt-6 hidden">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-medium">Order Status</div>
+            <div class="text-green-600 font-bold">Out for Delivery</div>
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-medium">Estimated Delivery</div>
+            <div class="text-gray-900">Tomorrow by 7 PM</div>
+          </div>
+          <div class="mt-4">
+            <div class="relative pt-1">
+              <div class="flex mb-1 items-center justify-between">
+                <div>
+                  <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-green-600 bg-green-200">
+                    In Transit
+                  </span>
+                </div>
+                <div class="text-right">
+                  <span class="text-xs font-semibold inline-block text-green-600">
+                    85%
+                  </span>
+                </div>
+              </div>
+              <div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-green-200">
+                <div style="width:85%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-green-500"></div>
+              </div>
+              <div class="flex justify-between text-sm text-gray-600">
+                <div>Order Placed</div>
+                <div>Shipped</div>
+                <div>Out for Delivery</div>
+                <div>Delivered</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!-- Feedback Section -->
+  <section id="feedback" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Feedback</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">We'd love to hear from you</p>
+      </div>
+      <div class="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <form id="feedback-form" action="https://formspree.io/f/xkgzzqoy" method="POST">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input type="text" id="name" name="name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+            </div>
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input type="email" id="feedback-email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required>
+            </div>
+          </div>
+          <div class="mb-6">
+            <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+            <select id="subject" name="subject" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="suggestion">Suggestion</option>
+              <option value="compliment">Compliment</option>
+              <option value="complaint">Complaint</option>
+              <option value="query">Query</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="mb-6">
+            <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+            <textarea id="message" name="message" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" required></textarea>
+          </div>
+          <div class="mb-6">
+            <div class="flex items-center">
+              <input id="contact-me" name="contact-me" type="checkbox" class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+              <label for="contact-me" class="ml-2 block text-sm text-gray-900">Contact me about this feedback</label>
+            </div>
+          </div>
+          <div>
+            <input type="hidden" name="_redirect" value="https://grameentaste.kesug.com/thanks.html">
+<button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Submit Feedback</button>
+              <i class="fas fa-paper-plane ml-2"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Policies Section -->
+  <section id="policies" class="py-16 bg-gray-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-gray-900">Our Policies</h2>
+        <p class="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">Transparent and customer-friendly policies</p>
+      </div>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-truck text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-4">Shipping Policy</h3>
+          <p class="text-gray-600 mb-4">We deliver across India within 5-6 business days. Major cities receive shipments within 2-3 days. Shipping is free for orders above ₹1000.</p>
+          <a href="#shipping-details" class="text-green-600 hover:text-green-800 text-sm font-medium>shippng-details</a>
+                    <a href="#shipping-details" class="text-green-600 hover:text-green-800 text-sm font-medium">Shipping Details</a>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-undo text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-4">Return Policy</h3>
+          <p class="text-gray-600 mb-4">If you are not satisfied with your purchase, you can return it within 30 days for a full refund. Please ensure the product is unopened and in its original packaging.</p>
+          <a href="#return-details" class="text-green-600 hover:text-green-800 text-sm font-medium">Return Details</a>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <div class="text-green-600 mb-4">
+            <i class="fas fa-lock text-3xl"></i>
+          </div>
+          <h3 class="text-xl font-semibold mb-4">Privacy Policy</h3>
+          <p class="text-gray-600 mb-4">We value your privacy and are committed to protecting your personal information. We do not sell or share your data with third parties without your consent.</p>
+          <a href="#privacy-details" class="text-green-600 hover:text-green-800 text-sm font-medium">Privacy Details</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer Section -->
+  <footer class="bg-white py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <p class="text-gray-600">© 2025 Grameen Taste. All rights reserved.</p>
+      <div class="flex justify-center space-x-4 mt-4">
+        <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-facebook-f"></i></a>
+        <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-twitter"></i></a>
+        <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-instagram"></i></a>
+        <a href="#" class="text-gray-600 hover:text-gray-800"><i class="fab fa-linkedin-in"></i></a>
+      </div>
+    </div>
+  </footer>
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+  let cart = JSON.parse(localStorage.getItem("cart")) || [];
+//<!--Login Pannel Button-->
+const loginDrawer = document.getElementById("login-drawer");
+const loginOverlay = document.getElementById("login-overlay");
+const loginOpenBtn = document.getElementById("user-btn");
+const loginCloseBtn = document.getElementById("close-login-drawer");
+
+loginOpenBtn.addEventListener("click", () => {
+  loginDrawer.classList.remove("translate-x-full");
+  loginOverlay.classList.remove("hidden");
+});
+
+loginCloseBtn.addEventListener("click", () => {
+  loginDrawer.classList.add("translate-x-full");
+  loginOverlay.classList.add("hidden");
+});
+// Tab Toggle
+document.getElementById("tab-login").addEventListener("click", () => {
+  document.getElementById("login-form").classList.remove("hidden");
+  document.getElementById("signup-form").classList.add("hidden");
+  document.getElementById("otp-form").classList.add("hidden");
+
+  toggleActiveTab("tab-login");
+});
+
+document.getElementById("tab-signup").addEventListener("click", () => {
+  document.getElementById("signup-form").classList.remove("hidden");
+  document.getElementById("login-form").classList.add("hidden");
+  document.getElementById("otp-form").classList.add("hidden");
+
+  toggleActiveTab("tab-signup");
+});
+
+document.getElementById("tab-otp").addEventListener("click", () => {
+  document.getElementById("otp-form").classList.remove("hidden");
+  document.getElementById("login-form").classList.add("hidden");
+  document.getElementById("signup-form").classList.add("hidden");
+
+  toggleActiveTab("tab-otp");
+});
+
+function toggleActiveTab(activeId) {
+  ["tab-login", "tab-signup", "tab-otp"].forEach(id => {
+    const btn = document.getElementById(id);
+    if (id === activeId) {
+      btn.classList.add("text-green-600", "border-b-2", "border-green-600");
+    } else {
+      btn.classList.remove("text-green-600", "border-b-2", "border-green-600");
+    }
+  });
+}
+
+//mobile-menu-btn
+document.getElementById("mobile-menu-btn").addEventListener("click", function () {
+  const mobileMenu = document.getElementById("mobile-menu");
+  mobileMenu.classList.toggle("hidden");
+});
+//mobile view mein login redirect
+document.querySelector('#mobile-menu a[href="#login"]').addEventListener("click", function(e) {
+  e.preventDefault();
+  document.getElementById("mobile-menu").classList.add("hidden");
+  document.getElementById("user-btn").click(); // trigger login drawer
+});
+//mobile view mein cart🛒 redirect
+document.getElementById("mobile-cart").addEventListener("click", function (e) {
+  e.preventDefault();
+  document.getElementById("mobile-menu").classList.add("hidden");
+  document.getElementById("cart-btn").click(); // scrolls to cart
+});
+
+//Agar chahte ho ki mobile menu ke andar koi link dabate hi menu band ho jaaye
+document.querySelectorAll("#mobile-menu a").forEach(link => {
+  link.addEventListener("click", () => {
+    document.getElementById("mobile-menu").classList.add("hidden");
+  });
+});
+// Show/Hide Password
+document.querySelectorAll(".toggle-password").forEach(toggle => {
+  toggle.addEventListener("click", () => {
+    const input = document.querySelector(toggle.getAttribute("toggle"));
+    if (input.type === "password") {
+      input.type = "text";
+      toggle.innerHTML = '<i class="fas fa-eye-slash"></i>';
+    } else {
+      input.type = "password";
+      toggle.innerHTML = '<i class="fas fa-eye"></i>';
+    }
+  });
+});
+
+// Optional: Click outside to close
+loginOverlay.addEventListener("click", () => {
+  loginDrawer.classList.add("translate-x-full");
+  loginOverlay.classList.add("hidden");
+});
+//<!--Header Cart Button-->
+document.getElementById("cart-btn").addEventListener("click", function () {
+  const cartSection = document.querySelector("#cart-items");
+  if (cartSection) {
+    const offsetTop = cartSection.getBoundingClientRect().top + window.scrollY - 100; // adjust -100 for 100px above
+    window.scrollTo({ top: offsetTop, behavior: "smooth" });
+  }
+});
+  function updateCartDisplay() {
+  const cartItemsContainer = document.getElementById("cart-items");
+  cartItemsContainer.innerHTML = "";
+
+  let totalItems = 0;
+  let totalPrice = 0;
+
+  if (cart.length === 0) {
+    cartItemsContainer.innerHTML = "<p>Your cart is empty.</p>";
+  } else {
+    const itemList = document.createElement("ul");
+    itemList.classList.add("space-y-2");
+
+    cart.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "flex justify-between items-center border-b py-2";
+      li.innerHTML = `
+        <span>${item.name} × ${item.quantity}</span>
+        <span>₹${item.price * item.quantity}</span>
+      `;
+      itemList.appendChild(li);
+
+      totalItems += item.quantity;
+      totalPrice += item.price * item.quantity;
+    });
+
+    const totalDiv = document.createElement("div");
+    totalDiv.className = "flex justify-between items-center font-bold mt-4 pt-4 border-t";
+    totalDiv.innerHTML = `
+      <span>Total:</span>
+      <span>₹${totalPrice}</span>
+    `;
+
+    const checkoutBtn = document.createElement("button");
+    checkoutBtn.className = "mt-4 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 font-semibold";
+    checkoutBtn.innerText = "Proceed to Checkout";
+    checkoutBtn.onclick = () => {
+       window.location.href = "checkout.html";
+    };
+
+    cartItemsContainer.appendChild(itemList);
+    cartItemsContainer.appendChild(totalDiv);
+    cartItemsContainer.appendChild(checkoutBtn);
+  }
+
+  const cartCount = document.getElementById("cart-count");
+  cartCount.innerText = totalItems > 0 ? `+${totalItems}` : "0";
+
+  document.querySelectorAll(".product-controls").forEach(wrapper => {
+    const id = wrapper.dataset.id;
+    const addBtn = wrapper.querySelector(".add-to-cart");
+    const qtyBox = wrapper.querySelector(".qty-control");
+    const qtySpan = wrapper.querySelector(".product-qty");
+
+    const product = cart.find(p => p.id === id);
+
+    if (product && product.quantity > 0) {
+      qtySpan.textContent = product.quantity;
+      addBtn.classList.add("hidden");
+      qtyBox.classList.remove("hidden");
+    } else {
+      qtySpan.textContent = "0";
+      addBtn.classList.remove("hidden");
+      qtyBox.classList.add("hidden");
+    }
+  });
+}
+
+  document.querySelectorAll(".product-controls").forEach(wrapper => {
+  const id = wrapper.dataset.id;
+  const qtySpan = wrapper.querySelector(".product-qty");
+  const addBtn = wrapper.querySelector(".add-to-cart");
+  const incBtn = wrapper.querySelector(".increase-qty");
+  const decBtn = wrapper.querySelector(".decrease-qty");
+
+  const card = wrapper.closest(".product-card");
+  const name = card.dataset.name;
+  const price = parseFloat(card.dataset.price);
+
+  addBtn.addEventListener("click", () => {
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity++;
+    } else {
+      cart.push({ id, name, price, quantity: 1 });
+    }
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCartDisplay();
+  });
+  incBtn.addEventListener("click", () => {
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity++;
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartDisplay();
+    }
+  });
+
+  decBtn.addEventListener("click", () => {
+    const existing = cart.find(item => item.id === id);
+    if (existing) {
+      existing.quantity--;
+      if (existing.quantity <= 0) {
+        cart = cart.filter(item => item.id !== id);
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      updateCartDisplay();
+    }
+  });
+});
+  updateCartDisplay();
+  });
+    </script>
+  <!-- Cart with checkOut-->
+  </script>
+ <!-- Overlay Background -->
+<div id="login-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-[998] hidden"></div>
+<!-- Right Side Login Drawer -->
+ <div id="login-drawer" class="fixed top-0 right-0 w-80 max-w-full h-full bg-white shadow-lg z-[999] transform translate-x-full transition-transform duration-300 ease-in-out">
+  <div class="flex justify-between items-center px-4 py-3 border-b">
+    <h3 class="text-lg font-bold">User Login</h3>
+    <button id="close-login-drawer" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+  </div>
+  <div class="p-6">
+  <!-- Tabs -->
+  <div class="flex justify-center mb-4">
+    <button id="tab-login" class="tab-btn text-green-600 font-bold border-b-2 border-green-600 px-4 py-2">Login</button>
+    <button id="tab-otp" class="tab-btn text-gray-500 hover:text-green-600 px-4 py-2">OTP Login</button>
+    <button id="tab-signup" class="tab-btn text-gray-500 hover:text-green-600 px-4 py-2">Sign Up</button>
+  </div>
+
+  <!-- Login Form -->
+  <form id="login-form" class="tab-content">
+  <div class="mb-4">
+    <label for="username" class="block text-sm font-medium text-gray-700">Email</label>
+    <input type="email" id="username" name="username" required
+      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+  </div>
+  <div class="mb-4 relative">
+    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+    <input type="password" id="password" name="password" required
+      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+    <span toggle="#password" class="toggle-password absolute right-3 top-9 text-gray-500 cursor-pointer"><i class="fas fa-eye"></i></span>
+  </div>
+  <div class="mb-2 text-right">
+    <a href="https://grameentastes.netlify.app/forgot-password.html" class="text-sm text-green-600 hover:underline">Forgot Password?</a>
+  </div>
+  <button type="button" onclick="loginEmail()"
+    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-semibold">Login</button>
+</form>
+<!--OTP Login-->
+<form id="otp-form" class="tab-content hidden">
+  <div class="mb-4">
+    <label for="phoneNumber" class="block text-sm font-medium text-gray-700">Mobile Number</label>
+    <div class="flex mb-4">
+  <span class="flex items-center px-3 bg-gray-100 text-gray-600 border border-gray-300 rounded-l">
+    +91
+  </span>
+  <input type="tel" id="mobile" placeholder="Mobile number"
+    class="w-full px-4 py-2 border-t border-b border-r border-gray-300 rounded-r focus:outline-none focus:ring-2 focus:ring-green-500">
+</div>
+  </div>
+
+  <div id="recaptcha-container" class="mb-2"></div>
+
+  <button type="button" onclick="sendOTP()"
+    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-semibold">Send OTP</button>
+
+  <div class="mt-4 mb-2">
+    <label for="otp" class="block text-sm font-medium text-gray-700">Enter OTP</label>
+    <input type="text" id="otp"
+      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+      placeholder="123456">
+  </div>
+
+  <button type="button" onclick="verifyOTP()"
+    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-semibold">Verify & Login</button>
+</form>
+
+  <!-- Signup Form -->
+  <form id="signup-form" class="tab-content hidden">
+  <div class="mb-4">
+    <label for="new-email" class="block text-sm font-medium text-gray-700">Email</label>
+    <input type="email" id="new-email" name="new-email" required
+      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+  </div>
+  <div class="mb-4 relative">
+    <label for="new-password" class="block text-sm font-medium text-gray-700">Password</label>
+    <input type="password" id="new-password" name="new-password" required
+      class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+    <span toggle="#new-password" class="toggle-password absolute right-3 top-9 text-gray-500 cursor-pointer"><i class="fas fa-eye"></i></span>
+  </div>
+  <button type="button" onclick="signupEmail()"
+    class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded font-semibold">Sign Up</button>
+</form>
+</div>
+<!-- ✅ MY ACCOUNT DRAWER -->
+<div id="profileDrawer" class="fixed top-0 right-0 w-full max-w-full h-full bg-white shadow-lg z-[999] transform translate-x-full transition-transform duration-300 ease-in-out">
+  <h2 class="text-xl font-semibold mb-4">My Account</h2>
+  <p id="userEmailOrPhone" class="text-gray-800 font-medium -mt-2 mb-2">Welcome!</p>
+
+  <!-- 📦 Order History Button -->
+  <button id="orderHistoryBtn" class="block w-72 bg-[#6B8E23] text-white font-semibold py-2 rounded mt-4 hidden mx-auto"
+    onclick="location.href='dashboard.html'">
+    📦 View Order History
+  </button>
+
+  <!-- 📍 Track Order Button -->
+  <button id="trackOrderBtn" class="block w-72 bg-[#DAA520] text-white font-semibold py-2 rounded mt-2 hidden mx-auto"
+    onclick="location.href='dashboard.html#track'">
+    📍 Track Your Order
+  </button>
+
+  <!-- 🔴 Logout -->
+  <button onclick="logoutUser()" class="text-red-600 font-semibold hover:underline mt-6">Logout</button>
+</div>
+
+</body>
+</html>
+
+  
