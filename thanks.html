@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You - Grameen Taste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-orange-50 text-center p-8">
+  <h1 class="text-3xl font-bold text-green-600 mb-4">🎉 Thank You for Your Order!</h1>
+  <p class="text-lg mb-2">Your order has been placed successfully.</p>
+  <p class="mb-6 text-gray-700">Order ID: <span id="order-id" class="font-semibold text-black"></span></p>
+
+  <div id="order-summary" class="max-w-md mx-auto bg-white rounded-xl p-4 shadow-md text-left mb-6">
+    </div>
+
+  <a href="index.html" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Back to Home</a>
+
+  <script>
+    // Get order data from localStorage (from checkout.js)
+    const orderId = localStorage.getItem("lastOrderId");
+    const orderData = JSON.parse(localStorage.getItem("lastOrderData"));
+
+    document.getElementById("order-id").textContent = orderId || "N/A";
+
+    const container = document.getElementById("order-summary");
+    if (orderData && orderData.cart) {
+      container.innerHTML = `
+        <h2 class="text-xl font-semibold mb-2">Order Summary</h2>
+        <ul class="mb-4">
+          ${orderData.cart.map(item => `
+            <li class="flex justify-between py-1">
+              <span>${item.name} × ${item.quantity}</span>
+              <span>₹${item.price * item.quantity}</span>
+            </li>
+          `).join('')}
+        </ul>
+        <p class="font-semibold text-right">Total: ₹${orderData.total}</p>
+      `;
+    } else {
+      container.innerHTML = "<p>No order data found.</p>";
+    }
+  </script>
+</body>
+</html>
+
